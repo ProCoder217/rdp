@@ -25,7 +25,7 @@ jobs:
         net user topuser "T0pUser#25" /add
         net localgroup "Remote Desktop Users" topuser /add
         # (Optional) If you want to disable RDP for runneradmin:
-        net localgroup "Remote Desktop Users" runneradmin /delete
+        net localgroup "Remote Desktop Users" runneradmin /delete || exit 0
 
     - name: Enable Terminal Server
       run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
