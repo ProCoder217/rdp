@@ -1,33 +1,47 @@
-name: Expose Windows RDP via bore on Windows 2025
-on: [workflow_dispatch]
+name: Window 10 RDP via bore
+
+on: [push, workflow_dispatch]
 
 jobs:
-  tunnel-job:
+  build:
     runs-on: windows-2025
     timeout-minutes: 360  # 6 hours
+
     steps:
-      - name: Download rustup-init.exe
-        run: |
-          curl -o rustup-init.exe https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
+    - name: Download rustup-init.exe
+      run: Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile rustup-init.exe
 
-      - name: Install Rust
-        run: |
-          .\rustup-init.exe -y
-        # Ensure Rust is added to PATH for this session
-      - name: Add Cargo Bin to PATH
-        run: |
-          echo "$env:USERPROFILE\.cargo\bin" | Out-File -Append $env:GITHUB_PATH
+    - name: Install Rust
+      run: .\rustup-init.exe -y
 
-      - name: Install bore-cli
-        run: cargo install bore-cli
+    - name: Add Cargo to PATH
+      run: echo "$env:USERPROFILE\.cargo\bin" | Out-File -Append $env:GITHUB_PATH
 
-      - name: Run bore tunnel for RDP (port 3389)
-        run: |
-          Start-Process -NoNewWindow -FilePath "bore.exe" -ArgumentList "local 3389 --to bore.pub"
-          Write-Output "Tunnel started. Keeping runner alive for 6 hours..."
-          Start-Sleep -Seconds 21600  # 6 hours
+    - name: Install bore-cli
+      run: cargo install bore-cli
 
-      - name: Print tunnel log (for debugging)
-        if: always()
-        run: Get-Content bore.log
-        
+    - name: Enable Terminal Server
+      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+
+    - name: Enable RDP Firewall Rule
+      run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+    - name: Set User Authentication
+      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+
+    - name: Set Password for runneradmin
+      run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "supersecret" -Force)
+
+    - name: Create user topuser
+      run: |
+        net user topuser supersecret /add
+        net localgroup "Remote Desktop Users" topuser /add
+
+    - name: Create bore tunnel for RDP
+      run: |
+        $borePath = "$env:USERPROFILE\.cargo\bin\bore.exe"
+        Start-Process -NoNewWindow -FilePath $borePath -ArgumentList "local 3389 --to bore.pub"
+        Write-Output "RDP tunnel started. Connect using the bore endpoint shown above."
+        Write-Output "Username: topuser or runneradmin"
+        Write-Output "Password: supersecret"
+        Start-Sleep -Seconds 21600  # Keep alive for 6 hours
