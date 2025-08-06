@@ -1,0 +1,33 @@
+name: Expose Windows RDP via bore on Windows 2025
+on: [workflow_dispatch]
+
+jobs:
+  tunnel-job:
+    runs-on: windows-2025
+    timeout-minutes: 360  # 6 hours
+    steps:
+      - name: Download rustup-init.exe
+        run: |
+          curl -o rustup-init.exe https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
+
+      - name: Install Rust
+        run: |
+          .\rustup-init.exe -y
+        # Ensure Rust is added to PATH for this session
+      - name: Add Cargo Bin to PATH
+        run: |
+          echo "$env:USERPROFILE\.cargo\bin" | Out-File -Append $env:GITHUB_PATH
+
+      - name: Install bore-cli
+        run: cargo install bore-cli
+
+      - name: Run bore tunnel for RDP (port 3389)
+        run: |
+          Start-Process -NoNewWindow -FilePath "bore.exe" -ArgumentList "local 3389 --to bore.pub"
+          Write-Output "Tunnel started. Keeping runner alive for 6 hours..."
+          Start-Sleep -Seconds 21600  # 6 hours
+
+      - name: Print tunnel log (for debugging)
+        if: always()
+        run: Get-Content bore.log
+        
