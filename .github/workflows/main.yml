@@ -22,7 +22,7 @@ jobs:
 
     - name: Create only topuser for RDP and set password
       run: |
-        net user topuser supersecret /add
+        net user topuser "TopUser#SuperSecret2025" /add
         net localgroup "Remote Desktop Users" topuser /add
         # (Optional) If you want to disable RDP for runneradmin:
         net localgroup "Remote Desktop Users" runneradmin /delete
