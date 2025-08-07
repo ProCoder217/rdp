@@ -1,13 +1,32 @@
-name: Window 10 RDP via bore (topuser only)
+name: Windows 10 RDP via Bore (topuser only)
 
-on: [push, workflow_dispatch]
+on:
+  
+  workflow_dispatch:
+    inputs:
+      rdp_hours:
+        description: "Number of hours to enable RDP session (1-6)"
+        required: true
+        default: "6"
 
 jobs:
   build:
     runs-on: windows-2025
-    timeout-minutes: 360  # 6 hours
+    timeout-minutes: 365 # max out, script will self-limit runtime
 
     steps:
+    - name: Set rdp_hours (1-6) and duration in seconds
+      id: set_hours
+      run: |
+        $input = "${{ github.event.inputs.rdp_hours }}"
+        $hours = [int]$input
+        if ($hours -lt 1 -or $hours -gt 6) {
+          Write-Error "Invalid hours: $hours. Please enter a value between 1 and 6."
+          exit 1
+        }
+        echo "hours=$hours" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "rdp_seconds=$($hours * 3600)" | Out-File -FilePath $env:GITHUB_ENV -Append
+
     - name: Download rustup-init.exe
       run: Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile rustup-init.exe
 
@@ -24,7 +43,7 @@ jobs:
       run: |
         net user topuser "T0pUser#25" /add
         net localgroup "Remote Desktop Users" topuser /add
-        # (Optional) If you want to disable RDP for runneradmin:
+        # To disable RDP for runneradmin:
         #net localgroup "Remote Desktop Users" runneradmin /delete || exit 0
 
     - name: Enable Terminal Server
@@ -43,4 +62,4 @@ jobs:
         Write-Output "RDP tunnel started. Connect using the bore endpoint in logs."
         Write-Output "Username: topuser"
         Write-Output "Password: supersecret"
-        Start-Sleep -Seconds 21600  # Keep alive for 6 hours
+        Start-Sleep -Seconds $env:rdp_seconds
