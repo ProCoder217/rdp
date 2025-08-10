@@ -7,6 +7,11 @@ on:
         description: "Number of hours to enable RDP session (1–6)"
         required: true
         default: "6"
+      user:
+        description: 'Username for session identification'
+        required: true
+        default: 'default-user'
+        type: string
 
 jobs:
   build:
