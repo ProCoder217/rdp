@@ -1,70 +1,69 @@
-name: Windows 11 RDP via Bore (topuser only)
+name: Windows 11 RDP via Bore 
 
 on:
   workflow_dispatch:
     inputs:
       rdp_hours:
-        description: "Number of hours to enable RDP session (1–6)"
+        description: 'Number of hours to enable RDP session (1–6)'
         required: true
-        default: "6"
+        default: '6'
+        type: string
       user:
-        description: 'Username for session identification'
+        description: 'Username requesting the RDP session'
         required: true
-        default: 'default-user'
         type: string
 
 jobs:
   build:
     runs-on: windows-2025
-    timeout-minutes: 365
-
+    timeout-minutes: 360
+    
     steps:
-    - name: Validate input and compute duration
-      id: config
+    - name: Display User Session Info
       run: |
-        $hours = [int]("${{ github.event.inputs.rdp_hours }}")
-        if ($hours -lt 1 -or $hours -gt 6) {
-          Write-Error "Invalid input: hours must be between 1 and 6."
-          exit 1
-        }
-        $seconds = $hours * 3600
-        echo "rdp_seconds=$seconds" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-    - name: Download rustup-init.exe
-      run: Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile rustup-init.exe
-
-    - name: Install Rust
-      run: .\rustup-init.exe -y
-
-    - name: Add Cargo to PATH
-      run: echo "$env:USERPROFILE\.cargo\bin" | Out-File -Append $env:GITHUB_PATH
-
-    - name: Install bore-cli
-      run: cargo install bore-cli
-
-    - name: Create topuser and set original password
-      run: net user topuser "T0pUser#25" /add
-
-    - name: ✅ Add topuser to RDP group only
-      run: net localgroup "Remote Desktop Users" topuser /add
-
-    - name: 🔐 Set runneradmin password to Ab@1234
-      run: net user runneradmin Ab@1234
-
-    - name: Enable Terminal Server (RDP)
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-
-    - name: Enable RDP Firewall Rule
-      run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-
-    - name: Enable User Authentication for RDP
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
-
-    - name: Start bore tunnel and keep session alive
+        echo "🖥️ Starting RDP Session for User: ${{ inputs.user }}"
+        echo "⏰ Duration: ${{ inputs.rdp_hours }} hours"
+        echo "📅 Started: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        echo "🆔 User ID: ${{ inputs.user }}"
+        
+    - name: Download Bore
       run: |
-        $borePath = "$env:USERPROFILE\.cargo\bin\bore.exe"
-        Start-Process -NoNewWindow -FilePath $borePath -ArgumentList "local 3389 --to bore.pub"
-        Write-Output "✅ RDP tunnel started!"
-        Write-Output "🖥️ topuser login: T0pUser#25"
-        Write-Output "🖥️ runneradmin login: Ab@1244"
-        Start-Sleep -Seconds $env:rdp_seconds
+        echo "📥 Downloading bore tunnel for user: ${{ inputs.user }}"
+        Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.4.0/bore-v0.4.0-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
+        Expand-Archive -Path "bore.zip" -DestinationPath "bore"
+        
+    - name: Set up RDP
+      run: |
+        echo "⚙️ Configuring RDP for user: ${{ inputs.user }}"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-TCP' -name "UserAuthentication" -Value 1
+
+    - name: Start RDP Session
+      run: |
+        $user = "${{ inputs.user }}"
+        $hours = [int]"${{ inputs.rdp_hours }}"
+        $minutes = $hours * 60
+        
+        echo "🚀 Starting RDP Session:"
+        echo "   User: $user"
+        echo "   Duration: $hours hours"
+        
+        # Start bore tunnel
+        echo "🌐 Starting bore tunnel..."
+        Start-Process -FilePath "bore\bore.exe" -ArgumentList "local", "3389", "--to", "bore.pub" -NoNewWindow -PassThru
+        
+        Start-Sleep -Seconds 5
+        
+        echo "✅ RDP Session Active for user: $user"
+        echo "🔑 Login Credentials:"
+        echo "   Username: topuser | Password: T0pUser#25"
+        echo "   Username: runneradmin | Password: Ab@1234"
+        echo ""
+        echo "🌐 Connection will be available via bore.pub tunnel"
+        echo "👤 Session Owner: $user"
+        echo "📅 Session Started: $(Get-Date)"
+        echo "⏰ Session Duration: $hours hours"
+        
+        # Keep session alive
+        Start-Sleep -Seconds ($minutes * 60)
