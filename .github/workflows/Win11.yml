@@ -13,6 +13,9 @@ on:
         required: true
         type: string
 
+# Dynamic run name that includes the user
+run-name: 'Windows 11 run by ${{ inputs.user }}'
+
 jobs:
   build:
     runs-on: windows-2025
