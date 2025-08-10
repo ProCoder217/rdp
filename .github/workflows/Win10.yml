@@ -1,5 +1,4 @@
 name: Windows 10 RDP via Bore 
-
 on:
   workflow_dispatch:
     inputs:
@@ -12,6 +11,9 @@ on:
         description: 'Username requesting the RDP session'
         required: true
         type: string
+
+# Dynamic run name that includes the user
+run-name: 'Windows 10 run by ${{ inputs.user }}'
 
 jobs:
   build:
