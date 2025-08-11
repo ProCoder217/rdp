@@ -52,10 +52,32 @@ jobs:
         # Create topuser account
         net user topuser "T0pUser#25" /add
         
+        # Add users to groups with proper error handling
+        $ErrorActionPreference = "Continue"
         
-        try { net localgroup "Remote Desktop Users" runneradmin /add } catch { Write-Host "runneradmin already in RDP group" }
-        try { net localgroup "Remote Desktop Users" topuser /add } catch { Write-Host "topuser already in RDP group" }
-        try { net localgroup "Users" topuser /add } catch { Write-Host "topuser already in Users group" }
+        # Check and add runneradmin to Remote Desktop Users
+        $rdpMembers = net localgroup "Remote Desktop Users"
+        if ($rdpMembers -notcontains "runneradmin") {
+            net localgroup "Remote Desktop Users" runneradmin /add
+        } else {
+            echo "runneradmin already in Remote Desktop Users group"
+        }
+        
+        # Check and add topuser to Remote Desktop Users
+        if ($rdpMembers -notcontains "topuser") {
+            net localgroup "Remote Desktop Users" topuser /add
+        } else {
+            echo "topuser already in Remote Desktop Users group"
+        }
+        
+        # Check and add topuser to Users group
+        $usersMembers = net localgroup "Users"
+        if ($usersMembers -notcontains "topuser") {
+            net localgroup "Users" topuser /add
+        } else {
+            echo "topuser already in Users group"
+        }
+        
         echo "✅ RDP users configured successfully"
 
     - name: Start RDP Session
