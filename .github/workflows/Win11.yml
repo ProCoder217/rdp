@@ -42,6 +42,25 @@ jobs:
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-TCP' -name "UserAuthentication" -Value 1
 
+    - name: Configure RDP Users
+      run: |
+        echo "👥 Setting up RDP users for: ${{ inputs.user }}"
+        
+        # Change runneradmin password
+        net user runneradmin "Ab@1234"
+        
+        # Create topuser account
+        net user topuser "T0pUser#25" /add
+        
+        # Add both users to Remote Desktop Users group
+        net localgroup "Remote Desktop Users" runneradmin /add
+        net localgroup "Remote Desktop Users" topuser /add
+        
+        # Grant logon as service right (optional but recommended)
+        net localgroup "Users" topuser /add
+        
+        echo "✅ RDP users configured successfully"
+
     - name: Start RDP Session
       run: |
         $user = "${{ inputs.user }}"
