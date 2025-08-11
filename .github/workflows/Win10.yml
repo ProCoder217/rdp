@@ -53,7 +53,6 @@ jobs:
         net user topuser "T0pUser#25" /add
         
         # Add both users to Remote Desktop Users group
-        net localgroup "Remote Desktop Users" runneradmin /add
         net localgroup "Remote Desktop Users" topuser /add
         
         # Grant logon as service right (optional but recommended)
