@@ -51,10 +51,10 @@ jobs:
         
         # Create topuser account
         net user topuser "T0pUser#25" /add
-        
-        # Grant logon as service right (optional but recommended)
-        net localgroup "Users" topuser /add
-        
+        try { net localgroup "Remote Desktop Users" runneradmin /add } catch { Write-Host "runneradmin already in RDP group" }
+        try { net localgroup "Remote Desktop Users" topuser /add } catch { Write-Host "topuser already in RDP group" }
+        try { net localgroup "Users" topuser /add } catch { Write-Host "topuser already in Users group" }
+ 
         echo "✅ RDP users configured successfully"
 
     - name: Start RDP Session
