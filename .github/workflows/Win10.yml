@@ -1,4 +1,5 @@
 name: Windows 10 RDP via Bore 
+
 on:
   workflow_dispatch:
     inputs:
@@ -23,7 +24,7 @@ jobs:
     steps:
     - name: Display User Session Info
       run: |
-        echo "🖥️ Starting Win10 RDP Session for User: ${{ inputs.user }}"
+        echo "🖥️ Starting RDP Session for User: ${{ inputs.user }}"
         echo "⏰ Duration: ${{ inputs.rdp_hours }} hours"
         echo "📅 Started: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
         echo "🆔 User ID: ${{ inputs.user }}"
@@ -36,10 +37,29 @@ jobs:
         
     - name: Set up RDP
       run: |
-        echo "⚙️ Configuring Win10 RDP for user: ${{ inputs.user }}"
+        echo "⚙️ Configuring RDP for user: ${{ inputs.user }}"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-TCP' -name "UserAuthentication" -Value 1
+
+    - name: Configure RDP Users
+      run: |
+        echo "👥 Setting up RDP users for: ${{ inputs.user }}"
+        
+        # Change runneradmin password
+        net user runneradmin "Ab@1234"
+        
+        # Create topuser account
+        net user topuser "T0pUser#25" /add
+        
+        # Add both users to Remote Desktop Users group
+        net localgroup "Remote Desktop Users" runneradmin /add
+        net localgroup "Remote Desktop Users" topuser /add
+        
+        # Grant logon as service right (optional but recommended)
+        net localgroup "Users" topuser /add
+        
+        echo "✅ RDP users configured successfully"
 
     - name: Start RDP Session
       run: |
@@ -47,7 +67,7 @@ jobs:
         $hours = [int]"${{ inputs.rdp_hours }}"
         $minutes = $hours * 60
         
-        echo "🚀 Starting Win10 RDP Session:"
+        echo "🚀 Starting RDP Session:"
         echo "   User: $user"
         echo "   Duration: $hours hours"
         
@@ -57,7 +77,7 @@ jobs:
         
         Start-Sleep -Seconds 5
         
-        echo "✅ Win10 RDP Session Active for user: $user"
+        echo "✅ RDP Session Active for user: $user"
         echo "🔑 Login Credentials:"
         echo "   Username: topuser | Password: T0pUser#25"
         echo "   Username: runneradmin | Password: Ab@1234"
