@@ -52,8 +52,6 @@ jobs:
         # Create topuser account
         net user topuser "T0pUser#25" /add
         
-        # Add both users to Remote Desktop Users group
-        net localgroup "Remote Desktop Users" topuser /add
         
         # Grant logon as service right (optional but recommended)
         net localgroup "Users" topuser /add
